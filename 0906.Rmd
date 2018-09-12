@@ -4,6 +4,9 @@ author: "Yiyao Zhou"
 date: "9/6/2018"
 output: html_document
 ---
+```{r}
+library()
+```
 # Random numbers
 ```{r}
 x <- rnorm(100)
@@ -25,3 +28,128 @@ x <- sample(1:10,size=100,replace=TRUE)
 x <- sample( seq(1,10,2), size=10, replace=TRUE)
 ```
 
+# Fake Regression
+```{r}
+# regressionSim.R
+# generate data
+x <- rnorm(100)
+e <- rnorm(100)
+y <- 5 + 2*x + e
+# now run regression
+lmod <- lm( y ~ x )
+summary(lmod)
+plot(x,y)
+lines(x,lmod$fitted.values)
+grid()
+
+```
+# Ex1: Sample mean as forecast
+Should we always push for lowest MSE?
+How accurate are our sample estimates of MSE and R-squared?
+Answer: Monte-carlo methods
+1. Simulate fake data (lots of it)
+2. Repeat statistical procedure for each sample
+3. Use computer generated random variables
+```{r}
+# monte-carlo for variance bias
+#  This of a simple forecasting problem using the mean
+#  Evaluated with Mean-Squared-Error (MSE)
+# 1. define Monte-carlo size, how many times the computer run
+nmc <- 10000
+# 2. define Sample size, how big is the data
+nsamp <- 20
+mse1 <- rep(0,nmc) # repeat 0 for nmc times
+mse2 <- rep(0,nmc)
+mse3 <- rep(0,nmc)
+for (i in 1:nmc) {
+  x <- rnorm(nsamp, mean = 0, sd = 1)
+  y <- rnorm(nsamp, mean = 0, sd = 1)
+  m <- mean(x)
+  # use mean on own sample
+  mse1[i] <-  mean((x - m)^2)
+  # mse1[i] <-(1/(nsamp-1))*sum((s-m)^2)
+  # use true population mean on sample
+  mse2[i] <-  mean((x - 0)^2)
+  # use mean(x) out of sample on y
+  mse3[i] <-  mean((y - m)^2)
+}
+
+print(mean(mse1))
+print(mean(mse2))
+print(mean(mse3))
+
+
+```
+# More problems with in sample MSE
+Simulate the in sample bias for a basic linear model used to forecast out of sample data.
+```{r}
+# sample size
+nsamp <- 20
+# number of monte-carlo
+nmc <- 1000
+# in sample mse
+msein <- rep(0,nmc)
+# out of sample mse
+mseout <- rep(0,nmc)
+# set linear parameter
+beta <- 2
+for (i in 1:nmc) {
+  # generate the training set
+  # default: generate SD = 1
+  x <- rnorm(nsamp)
+  e <- rnorm(nsamp)
+  # build linear model
+  y <- beta*x + e
+  # fit OLS linear model
+  fitreg <- lm( y ~ x)
+  # in sample forecast
+  yhat <- fitreg$fitted.values
+  # in sample mse
+  msein[i] <- mean((y - yhat)^2)
+  # build new clean data(generate a test set)
+  x2 <- rnorm(nsamp)
+  e2 <- rnorm(nsamp)
+  y2 <- beta*x2 + e2
+  # convert x2 into dataframe with x label
+  # this is done for predict command
+  xdf <- data.frame(x = x2)
+  # get out of sample forecast for y
+  yhat <- predict(fitreg,xdf)
+  # out of sample MSE
+  mseout[i] <- mean( (y2 - yhat)^2 )
+}
+print(mean(msein))
+print(mean(mseout))
+```
+
+Simulate the apparent forecast improvement from adding irrelevant variables.
+```{r}
+# sample size
+nsamp <- 20
+# number of monte-carlo
+nmc   <- 1000
+# in sample mse
+mse <- rep(0,nmc)
+# out of sample mse
+mseExtra <- rep(0,nmc)
+# set linear parameter
+beta <- 2
+for (i in 1:nmc) {
+  x <- rnorm(nsamp)
+  e <- rnorm(nsamp)
+  # build linear model
+  y <- beta*x + e
+  # fit OLS linear model
+  fitreg <- lm(y ~ x)
+  # in sample MSE
+  mse[i] <- mean(fitreg$residuals^2)
+  # build new clean data, add a non related variable, simulate the situation we include nonrelevant variable when do regression.
+  x2 <- rnorm(nsamp)
+  fitregExtra <- lm( y ~ x + x2)
+  mseExtra[i] <- mean(fitregExtra$residuals^2)
+}
+print(mean(mse))
+print(mean(mseExtra))
+# x2 useless variable, but get a better mse
+# adding variables will decrease the mse
+```

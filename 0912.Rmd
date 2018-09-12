@@ -1,0 +1,110 @@
+---
+title: "0912"
+author: "Yiyao Zhou"
+date: "9/12/2018"
+output: html_document
+---
+```{r}
+library(forecast)
+library(ggplot2)
+```
+
+# FRED
+Macro data: https://fred.stlouisfed.org/
+
+Real number GDP: https://fred.stlouisfed.org/series/GDPC1
+Unemployment: https://fred.stlouisfed.org/series/UNRATE
+
+# Estimateing a CAPM
+```{r}
+setwd("/Users/yiyao/Desktop/ECON-FIN-250A-1-Forecasting-in-Finance-and-Economics/ECON-FIN-250A-1-Forecasting-in-Finance-and-Economics")
+ibmmkt <- read.csv("ibmcrsp.csv")
+head(ibmmkt)
+
+# create time series
+ibmts <- ts(ibmmkt$RET,start=c(1926,1),freq=12)
+vwts <-  ts(ibmmkt$vwretd,start=c(1926,1),freq=12)
+tbts   <-  ts(ibmmkt$t90ret,start=c(1926,1),freq=12)
+
+# replace missing returns with 0 (hopefully not too many)
+ibmts[ is.na(ibmts) ] <- 0 
+
+#calculate excess returns
+# ibmts: IBM retruns
+# tbts: T-bill returns (risk-free return)
+# vwts: Market returns
+ibmex <- ibmts - tbts
+vwex  <- vwts - tbts
+
+# estimate IBM beta
+# lm is basic linear model in R
+# Note model notation
+# to get info type summary(capm.mod)
+capm.mod <- lm(ibmex ~ vwex)
+summary(capm.mod)
+```
+
+anscombe example: same regression model, different dataset
+plot
+```{r}
+example('anscombe')
+```
+
+# Logan Passenger example
+Data Source: https://www.transtats.bts.gov/Data_Elements.aspx?Data=1
+```{r}
+# Passengers (All Carriers - Boston, MA: Logan International (Origin Airport))  
+# (www.bts.dot.gov)
+logan.data <- read.csv("LoganPassengers.csv")
+# data comes as monthly entries with annual totals (see website)
+# need to remove annual values (these are just much bigger than monthly)
+# set 
+logan.data <- logan.data[logan.data$total < 5000000,]
+logan.ts <- ts(logan.data$total,start = c(2002,10), freq = 12)
+plot(logan.ts,xlab = "Year",ylab = "Passengers",bty = "l")
+grid()
+# if you want to try ggplot2
+# my favorite basic would be
+# p <- autoplot(logan.ts)
+# p <- autoplot(logan.ts)+theme_light(base_size=16)
+# print(p)
+```
+Short series
+Weak seasonality
+Trend: sort of, linear??
+
+Zooming in and windows
+```{r}
+# Display subwindow of data set
+# Load airport passenger data
+logan.data <- read.csv("LoganPassengers.csv")
+logan.data <- logan.data[logan.data$total<5000000,]
+logan.ts <- ts(logan.data$total,start=c(2002,10), freq=12)
+# create subwindow (3 years)
+logan.ts.zoom <- window(logan.ts,start=c(2002,10),end=c(2005,12))
+# plot it
+plot(logan.ts.zoom,xlab="Year",ylab="Passengers",bty="l")
+grid()
+```
+Get a very detailed picture of the early years
+Complicated season patern:low in Jan and fall, high in summer time (June) and holiday season (Dec)
+
+# U.S. Gasoline Supply
+```{r}
+# US product supplied of finished motor gasoline
+# Source U.S. Energy Information Administration
+gas.data <- read.csv("gasoline.csv")
+gas.ts <- ts(gas.data$gasoline,start = c(1945,1),freq = 12)
+plot(gas.ts)
+grid()
+```
+US product supplied of finished motor gasoline (monthly)
+Source: Energy Information Administration
+Longer series
+Strong seasonality
+Changing trends: like 1980 went down, then went up...
+
+# Dow Jones Industrials
+```{r}
+
+``
